@@ -168,52 +168,13 @@ sys_getprocinfo(void)
 int
 sys_thread_create(void)
 {
-  void(*func)(void*);
-  void *arg;
-  void *stack;
+  uint funcaddr;
+  uint argaddr;
+  uint stackaddr;
 
-  if (argptr(0, func, sizeof(func)) < 0 || argptr(1, arg, sizeof(arg)) || argptr(2, stack, PGSIZE)) {
+  if (argint(0, funcaddr) < 0 || argint(1, argaddr) || argint(2, stackaddr)) {
     return -1;
   }
 
-  int i, pid;
-  struct proc *np;
-  struct proc *curproc = myproc();
-
-  // Allocate process.
-  if((np = allocproc()) == 0){
-    return -1;
-  }
-
-  np->pgdir = curproc->pgdir;
-  np->sz = curproc->sz;
-  np->parent = curproc;
-  *np->tf = *curproc->tf;
-  np->tf->eip = (uint)func;  
-  np->thread_stack = stack;
-  np->is_thread = 1;
-
-  // Clear %eax so that thread_create returns 0 in the child.
-  np->tf->eax = 0;
-
-  uint *retaddr = stack + PGSIZE - 2 * sizeof(uint *);
-  *retaddr = 0xFFFFFFFF;
-  uint *argaddr = stack + PGSIZE - sizeof(uint *);
-  *argaddr = (uint)arg;
-
-  np->tf->esp = stack + PGSIZE - 2 * sizeof(uint *);
-  np->tf->ebp = np->tf->esp;
-
-  for(i = 0; i < NOFILE; i++)
-    if(curproc->ofile[i])
-      np->ofile[i] = filedup(curproc->ofile[i]);
-  np->cwd = idup(curproc->cwd);
-
-  safestrcpy(np->name, curproc->name, sizeof(curproc->name));
-
-  acquire(&ptable.lock);
-  np->state = RUNNABLE;
-  release(&ptable.lock);
-
-  return np->pid;
+  return thread_create(funcaddr, argaddr, stackaddr);  
 }

@@ -532,3 +532,48 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+int 
+thread_create(void(*fcn)(void*), void *arg, void*stack)
+{
+  int i;
+  struct proc *np;
+  struct proc *curproc = myproc();
+
+  // Allocate process.
+  if((np = allocproc()) == 0){
+    return -1;
+  }
+
+  np->pgdir = curproc->pgdir;
+  np->sz = curproc->sz;
+  np->parent = curproc;
+  *np->tf = *curproc->tf;
+  np->tf->eip = (uint)fcn;  
+  np->thread_stack = stack;
+  np->is_thread = 1;
+
+  // Clear %eax so that thread_create returns 0 in the child.
+  np->tf->eax = 0;
+
+  uint *retaddr = stack + PGSIZE - 2 * sizeof(uint *);
+  *retaddr = 0xFFFFFFFF;
+  uint *argaddr = stack + PGSIZE - sizeof(uint *);
+  *argaddr = (uint)arg;
+
+  np->tf->esp = (uint)stack + PGSIZE - 2 * sizeof(uint *);
+  np->tf->ebp = np->tf->esp;
+
+  for(i = 0; i < NOFILE; i++)
+    if(curproc->ofile[i])
+      np->ofile[i] = filedup(curproc->ofile[i]);
+  np->cwd = idup(curproc->cwd);
+
+  safestrcpy(np->name, curproc->name, sizeof(curproc->name));
+
+  acquire(&ptable.lock);
+  np->state = RUNNABLE;
+  release(&ptable.lock);
+
+  return np->pid;
+}
