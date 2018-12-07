@@ -549,19 +549,18 @@ thread_create(void(*fcn)(void*), void *arg, void*stack)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
-  np->tf->eip = (uint)fcn;  
-  np->thread_stack = stack;
+  np->tf->eip = (int)fcn;
   np->is_thread = 1;
 
   // Clear %eax so that thread_create returns 0 in the child.
   np->tf->eax = 0;
 
-  uint *retaddr = stack + PGSIZE - 2 * sizeof(uint *);
+  int *retaddr = stack + PGSIZE - 2 * sizeof(int *);
   *retaddr = 0xFFFFFFFF;
-  uint *argaddr = stack + PGSIZE - sizeof(uint *);
-  *argaddr = (uint)arg;
+  int *argaddr = stack + PGSIZE - sizeof(int *);
+  *argaddr = (int)arg;
 
-  np->tf->esp = (uint)stack + PGSIZE - 2 * sizeof(uint *);
+  np->tf->esp = (int)stack + PGSIZE - 2 * sizeof(int *);
   np->tf->ebp = np->tf->esp;
 
   for(i = 0; i < NOFILE; i++)
@@ -590,7 +589,7 @@ thread_join(void)
     // Scan through table looking for exited thread children.
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->parent != curproc || p->is_thread != 0)
+      if(p->parent != curproc || p->is_thread != 1)
         continue;
       havekids = 1;
       if(p->state == ZOMBIE){
@@ -598,7 +597,6 @@ thread_join(void)
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
-        freevm(p->pgdir);
         p->pid = 0;
         p->parent = 0;
         p->name[0] = 0;
@@ -623,45 +621,6 @@ thread_join(void)
 int
 thread_exit(void)
 {
-  struct proc *curproc = myproc();
-  struct proc *p;
-  int fd;
-
-  if(curproc == initproc)
-    panic("init exiting");
-  
-  if(curproc->is_thread != 1)
-    panic("thread exit on a process");
-
-  // Close all open files.
-  for(fd = 0; fd < NOFILE; fd++){
-    if(curproc->ofile[fd]){
-      fileclose(curproc->ofile[fd]);
-      curproc->ofile[fd] = 0;
-    }
-  }
-
-  begin_op();
-  iput(curproc->cwd);
-  end_op();
-  curproc->cwd = 0;
-
-  acquire(&ptable.lock);
-
-  // Parent might be sleeping in wait().
-  wakeup1(curproc->parent);
-
-  // Pass abandoned children to init.
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->parent == curproc){
-      p->parent = initproc;
-      if(p->state == ZOMBIE)
-        wakeup1(initproc);
-    }
-  }
-
-  // Jump into the scheduler, never to return.
-  curproc->state = ZOMBIE;
-  sched();
-  panic("zombie exit");
+  exit();
+  return 0;
 }
