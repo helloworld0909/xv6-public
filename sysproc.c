@@ -176,5 +176,5 @@ sys_thread_create(void)
     return -1;
   }
 
-  return thread_create(funcaddr, argaddr, stackaddr);  
+  return thread_create((void *)funcaddr, (void *)argaddr, (void *)stackaddr);  
 }
