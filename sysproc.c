@@ -172,7 +172,7 @@ sys_thread_create(void)
   uint argaddr;
   uint stackaddr;
 
-  if (argint(0, funcaddr) < 0 || argint(1, argaddr) || argint(2, stackaddr)) {
+  if (argint(0, &funcaddr) < 0 || argint(1, &argaddr) || argint(2, &stackaddr)) {
     return -1;
   }
 
