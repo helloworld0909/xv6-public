@@ -168,9 +168,9 @@ sys_getprocinfo(void)
 int
 sys_thread_create(void)
 {
-  uint funcaddr;
-  uint argaddr;
-  uint stackaddr;
+  int funcaddr;
+  int argaddr;
+  int stackaddr;
 
   if (argint(0, &funcaddr) < 0 || argint(1, &argaddr) || argint(2, &stackaddr)) {
     return -1;
