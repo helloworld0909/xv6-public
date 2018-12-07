@@ -28,6 +28,8 @@ int uptime(void);
 int backtrace(void);
 int getprocinfo(int proc_num, struct uproc *up);
 int thread_create(void(*fcn)(void*), void *arg, void* stack);
+int thread_join(void);
+int thread_exit(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

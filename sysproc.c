@@ -178,3 +178,15 @@ sys_thread_create(void)
 
   return thread_create((void *)funcaddr, (void *)argaddr, (void *)stackaddr);  
 }
+
+int 
+sys_thread_join(void)
+{
+  return thread_join();
+}
+
+int 
+sys_thread_exit(void)
+{
+  return thread_exit();
+}
